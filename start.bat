@@ -1,1 +1,1 @@
-python pdf_combiner.py
+python pdf_combiner_modern.py
