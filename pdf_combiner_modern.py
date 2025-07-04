@@ -38,6 +38,7 @@ class ModernPDFCombinerApp:
         self.combined_image1 = None
         self.combined_image2 = None
         self.export_ready = False
+        self.export_format = ctk.StringVar(value="PDF")  # PDF or PNG
         
         # Create main container with scrollbar
         self.main_container = ctk.CTkScrollableFrame(
@@ -60,31 +61,43 @@ class ModernPDFCombinerApp:
         # Title with icon
         self.title_label = ctk.CTkLabel(
             self.header_frame, 
-            text="📄 Combinateur PDF - Export PDF", 
-            font=ctk.CTkFont(size=28, weight="bold")
+            text="📄 Combinateur PDF Professionnel", 
+            font=ctk.CTkFont(size=26, weight="bold")
         )
-        self.title_label.pack(pady=20)
+        self.title_label.pack(pady=(15, 5))
         
         # Subtitle
         self.subtitle_label = ctk.CTkLabel(
             self.header_frame,
-            text="Combinez les moitiés de deux PDF A4 en nouveaux PDF 300 DPI qualité professionnelle",
-            font=ctk.CTkFont(size=14),
+            text="Combinez les moitiés de deux PDF A4 | Export PDF/PNG | Qualité 300 DPI",
+            font=ctk.CTkFont(size=12),
             text_color=("gray60", "gray40")
         )
         self.subtitle_label.pack(pady=(0, 10))
         
-        # Main content frame
-        self.content_frame = ctk.CTkFrame(self.main_container, corner_radius=10)
-        self.content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # Main workflow frame - organized in steps
+        self.workflow_frame = ctk.CTkFrame(self.main_container, corner_radius=10)
+        self.workflow_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # PDF Selection Frame
-        self.selection_frame = ctk.CTkFrame(self.content_frame, corner_radius=10)
-        self.selection_frame.pack(fill="x", padx=20, pady=20)
+        # STEP 1: PDF Selection
+        self.step1_frame = ctk.CTkFrame(self.workflow_frame, corner_radius=8)
+        self.step1_frame.pack(fill="x", padx=15, pady=(15, 10))
         
-        # PDF 1 Selection
-        self.pdf1_frame = ctk.CTkFrame(self.selection_frame, corner_radius=8)
-        self.pdf1_frame.pack(fill="x", padx=15, pady=10)
+        self.step1_title = ctk.CTkLabel(
+            self.step1_frame,
+            text="🔹 ÉTAPE 1 : Sélection des PDF",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=("blue", "lightblue")
+        )
+        self.step1_title.pack(pady=(15, 10))
+        
+        # PDF Selection Container (side by side)
+        self.pdfs_container = ctk.CTkFrame(self.step1_frame, fg_color="transparent")
+        self.pdfs_container.pack(fill="x", padx=15, pady=(0, 15))
+        
+        # PDF 1 Selection (left side)
+        self.pdf1_frame = ctk.CTkFrame(self.pdfs_container, corner_radius=8)
+        self.pdf1_frame.pack(side="left", fill="both", expand=True, padx=(0, 10))
         
         self.pdf1_title = ctk.CTkLabel(
             self.pdf1_frame, 
@@ -130,7 +143,8 @@ class ModernPDFCombinerApp:
             values=["Portrait", "Paysage"],
             variable=self.pdf1_orientation,
             width=100,
-            height=28
+            height=28,
+            command=self.update_pdf1_orientation
         )
         self.pdf1_orientation_menu.pack(side="left")
         
@@ -155,9 +169,9 @@ class ModernPDFCombinerApp:
         )
         self.pdf1_preview_image.pack(pady=(0, 10), padx=15)
         
-        # PDF 2 Selection
-        self.pdf2_frame = ctk.CTkFrame(self.selection_frame, corner_radius=8)
-        self.pdf2_frame.pack(fill="x", padx=15, pady=10)
+        # PDF 2 Selection (right side)
+        self.pdf2_frame = ctk.CTkFrame(self.pdfs_container, corner_radius=8)
+        self.pdf2_frame.pack(side="right", fill="both", expand=True, padx=(10, 0))
         
         self.pdf2_title = ctk.CTkLabel(
             self.pdf2_frame, 
@@ -203,7 +217,8 @@ class ModernPDFCombinerApp:
             values=["Portrait", "Paysage"],
             variable=self.pdf2_orientation,
             width=100,
-            height=28
+            height=28,
+            command=self.update_pdf2_orientation
         )
         self.pdf2_orientation_menu.pack(side="left")
         
@@ -228,16 +243,51 @@ class ModernPDFCombinerApp:
         )
         self.pdf2_preview_image.pack(pady=(0, 10), padx=15)
         
-        # Preview Frame
-        self.preview_main_frame = ctk.CTkFrame(self.content_frame, corner_radius=10)
-        self.preview_main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        # STEP 2: Combination and Preview
+        self.step2_frame = ctk.CTkFrame(self.workflow_frame, corner_radius=8)
+        self.step2_frame.pack(fill="x", padx=15, pady=10)
+        
+        self.step2_title = ctk.CTkLabel(
+            self.step2_frame,
+            text="🔹 ÉTAPE 2 : Combinaison et Aperçu",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=("blue", "lightblue")
+        )
+        self.step2_title.pack(pady=(15, 10))
+        
+        # Process button
+        self.process_button = ctk.CTkButton(
+            self.step2_frame,
+            text="🎯 Combiner les PDF",
+            command=self.process_pdfs_threaded,
+            width=200,
+            height=45,
+            corner_radius=8,
+            font=ctk.CTkFont(size=16, weight="bold"),
+            state="disabled"
+        )
+        self.process_button.pack(pady=(0, 15))
+        
+        # Progress bar
+        self.progress_bar = ctk.CTkProgressBar(
+            self.step2_frame,
+            width=400,
+            height=8,
+            corner_radius=4
+        )
+        self.progress_bar.pack(pady=(0, 15))
+        self.progress_bar.set(0)
+        
+        # Preview results frame
+        self.preview_main_frame = ctk.CTkFrame(self.step2_frame, corner_radius=8, fg_color="transparent")
+        self.preview_main_frame.pack(fill="x", padx=15, pady=(0, 15))
         
         self.preview_title = ctk.CTkLabel(
             self.preview_main_frame,
-            text="🎯 Aperçu des Résultats Combinés",
-            font=ctk.CTkFont(size=18, weight="bold")
+            text="👀 Aperçu des Résultats",
+            font=ctk.CTkFont(size=14, weight="bold")
         )
-        self.preview_title.pack(pady=(20, 10))
+        self.preview_title.pack(pady=(10, 10))
         
         self.preview_container = ctk.CTkFrame(self.preview_main_frame, fg_color="transparent")
         self.preview_container.pack(fill="both", expand=True, padx=20, pady=10)
@@ -283,54 +333,54 @@ class ModernPDFCombinerApp:
         )
         self.combined2_image.pack(pady=10, padx=15)
         
-        # Action Frame
-        self.action_frame = ctk.CTkFrame(self.content_frame, corner_radius=10)
-        self.action_frame.pack(fill="x", padx=20, pady=(10, 20))
+        # STEP 3: Export
+        self.step3_frame = ctk.CTkFrame(self.workflow_frame, corner_radius=8)
+        self.step3_frame.pack(fill="x", padx=15, pady=10)
         
-        # Progress bar
-        self.progress_bar = ctk.CTkProgressBar(
-            self.action_frame,
-            width=400,
-            height=8,
-            corner_radius=4
-        )
-        self.progress_bar.pack(pady=(20, 10))
-        self.progress_bar.set(0)
-        
-        # Process button
-        self.process_button = ctk.CTkButton(
-            self.action_frame,
-            text="🎯 Combiner les PDF",
-            command=self.process_pdfs_threaded,
-            width=200,
-            height=45,
-            corner_radius=8,
+        self.step3_title = ctk.CTkLabel(
+            self.step3_frame,
+            text="🔹 ÉTAPE 3 : Export des Fichiers",
             font=ctk.CTkFont(size=16, weight="bold"),
-            state="disabled"
+            text_color=("blue", "lightblue")
         )
-        self.process_button.pack(pady=15)
+        self.step3_title.pack(pady=(15, 10))
         
-        # Export Frame - MISE EN EVIDENCE
-        self.export_frame = ctk.CTkFrame(
-            self.action_frame, 
-            corner_radius=8, 
-            border_width=3, 
-            border_color=("blue", "lightblue"),
-            fg_color=("gray90", "gray20")
-        )
-        self.export_frame.pack(fill="x", padx=20, pady=25)
-        
-        self.export_title = ctk.CTkLabel(
-            self.export_frame,
-            text="📄 ⚠️ EXPORT PDF - SCROLLEZ POUR VOIR ⚠️ 📄",
-            font=ctk.CTkFont(size=18, weight="bold"),
-            text_color=("red", "orange")
-        )
-        self.export_title.pack(pady=(20, 15))
+        # Export Frame
+        self.export_frame = ctk.CTkFrame(self.step3_frame, corner_radius=8, fg_color="transparent")
+        self.export_frame.pack(fill="x", padx=15, pady=(0, 15))
         
         # Export options
         self.export_options_frame = ctk.CTkFrame(self.export_frame, fg_color="transparent")
         self.export_options_frame.pack(fill="x", padx=15, pady=10)
+        
+        # Export format selection
+        self.format_frame = ctk.CTkFrame(self.export_options_frame, fg_color="transparent")
+        self.format_frame.pack(fill="x", pady=10)
+        
+        self.format_label = ctk.CTkLabel(
+            self.format_frame,
+            text="📄 Format d'export:",
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        self.format_label.pack(side="left", padx=(0, 10))
+        
+        self.format_menu = ctk.CTkOptionMenu(
+            self.format_frame,
+            values=["PDF", "PNG"],
+            variable=self.export_format,
+            width=100,
+            height=32,
+            command=self.update_export_format
+        )
+        self.format_menu.pack(side="left", padx=(0, 20))
+        
+        self.format_info = ctk.CTkLabel(
+            self.format_frame,
+            text="💡 PDF: Document vectoriel | PNG: Image haute résolution",
+            font=ctk.CTkFont(size=11),
+            text_color=("gray60", "gray40")
+        )
+        self.format_info.pack(side="left")
         
         # File name entries
         self.filename1_frame = ctk.CTkFrame(self.export_options_frame, fg_color="transparent")
@@ -392,18 +442,22 @@ class ModernPDFCombinerApp:
         )
         self.export_button.pack(pady=25)
         
+        # Status and Settings Frame
+        self.status_frame = ctk.CTkFrame(self.workflow_frame, corner_radius=8)
+        self.status_frame.pack(fill="x", padx=15, pady=(10, 15))
+        
         # Status label
         self.status_label = ctk.CTkLabel(
-            self.action_frame,
+            self.status_frame,
             text="📋 Sélectionnez deux fichiers PDF pour commencer",
             font=ctk.CTkFont(size=12),
             text_color=("gray60", "gray40")
         )
-        self.status_label.pack(pady=(0, 15))
+        self.status_label.pack(pady=15)
         
         # Theme toggle
-        self.theme_frame = ctk.CTkFrame(self.action_frame, fg_color="transparent")
-        self.theme_frame.pack(pady=(0, 10))
+        self.theme_frame = ctk.CTkFrame(self.status_frame, fg_color="transparent")
+        self.theme_frame.pack(pady=(0, 15))
         
         self.theme_label = ctk.CTkLabel(
             self.theme_frame,
@@ -421,15 +475,6 @@ class ModernPDFCombinerApp:
         )
         self.theme_switch.pack(side="left")
         self.theme_switch.select()  # Start with dark theme
-        
-        # Scroll instruction
-        self.scroll_instruction = ctk.CTkLabel(
-            self.action_frame,
-            text="💡 CONSEIL: Utilisez la molette de la souris pour scroller et voir l'export PDF !",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            text_color=("orange", "yellow")
-        )
-        self.scroll_instruction.pack(pady=15)
         
     def toggle_theme(self):
         """Toggle between light and dark themes"""
@@ -486,11 +531,18 @@ class ModernPDFCombinerApp:
                 else:
                     self.pdf2_image = image
                 
+                # Apply orientation to preview
+                if pdf_number == 1:
+                    oriented_image = self.apply_orientation(image, self.pdf1_orientation.get())
+                else:
+                    oriented_image = self.apply_orientation(image, self.pdf2_orientation.get())
+                
                 # Create thumbnail for preview
-                image.thumbnail((120, 140), Image.Resampling.LANCZOS)
+                preview_image = oriented_image.copy()
+                preview_image.thumbnail((120, 140), Image.Resampling.LANCZOS)
                 
                 # Convert to CTkImage for better compatibility
-                ctk_image = ctk.CTkImage(light_image=image, dark_image=image, size=(120, 140))
+                ctk_image = ctk.CTkImage(light_image=preview_image, dark_image=preview_image, size=(120, 140))
                 
                 # Update preview on main thread
                 self.root.after(0, lambda: self.update_preview(ctk_image, pdf_number))
@@ -509,6 +561,36 @@ class ModernPDFCombinerApp:
             self.pdf2_preview_image.image = ctk_image  # Keep a reference
             
         self.check_ready_to_process()
+        
+    def update_pdf1_orientation(self, value):
+        """Update PDF1 preview when orientation changes"""
+        if self.pdf1_image:
+            self.refresh_preview(1)
+            
+    def update_pdf2_orientation(self, value):
+        """Update PDF2 preview when orientation changes"""
+        if self.pdf2_image:
+            self.refresh_preview(2)
+            
+    def refresh_preview(self, pdf_number):
+        """Refresh preview with current orientation"""
+        if pdf_number == 1 and self.pdf1_image:
+            # Apply orientation to preview
+            image = self.apply_orientation(self.pdf1_image, self.pdf1_orientation.get())
+            image_copy = image.copy()
+            image_copy.thumbnail((120, 140), Image.Resampling.LANCZOS)
+            ctk_image = ctk.CTkImage(light_image=image_copy, dark_image=image_copy, size=(120, 140))
+            self.pdf1_preview_image.configure(image=ctk_image, text="")
+            self.pdf1_preview_image.image = ctk_image
+            
+        elif pdf_number == 2 and self.pdf2_image:
+            # Apply orientation to preview
+            image = self.apply_orientation(self.pdf2_image, self.pdf2_orientation.get())
+            image_copy = image.copy()
+            image_copy.thumbnail((120, 140), Image.Resampling.LANCZOS)
+            ctk_image = ctk.CTkImage(light_image=image_copy, dark_image=image_copy, size=(120, 140))
+            self.pdf2_preview_image.configure(image=ctk_image, text="")
+            self.pdf2_preview_image.image = ctk_image
         
     def update_combined_previews(self, combined_image1, combined_image2):
         """Update combined results preview"""
@@ -551,9 +633,23 @@ class ModernPDFCombinerApp:
             base1 = os.path.splitext(os.path.basename(self.pdf1_path))[0]
             base2 = os.path.splitext(os.path.basename(self.pdf2_path))[0]
             
+            # Get current format
+            format_ext = self.export_format.get().lower()
+            
             # Set placeholder text
-            self.filename1_entry.configure(placeholder_text=f"{base1}_top_{base2}_bottom.pdf")
-            self.filename2_entry.configure(placeholder_text=f"{base2}_top_{base1}_bottom.pdf")
+            self.filename1_entry.configure(placeholder_text=f"{base1}_top_{base2}_bottom.{format_ext}")
+            self.filename2_entry.configure(placeholder_text=f"{base2}_top_{base1}_bottom.{format_ext}")
+            
+    def update_export_format(self, value):
+        """Update export format and filename suggestions"""
+        # Update filename suggestions with new format
+        self.update_filename_suggestions()
+        
+        # Update export button text
+        if value == "PDF":
+            self.export_button.configure(text="🚀 📄 EXPORTER LES PDF 📄 🚀")
+        else:
+            self.export_button.configure(text="🚀 🖼️ EXPORTER LES PNG 🖼️ 🚀")
             
     def process_pdfs_threaded(self):
         """Start PDF processing in a separate thread"""
@@ -690,7 +786,7 @@ class ModernPDFCombinerApp:
         )
         
     def export_images(self):
-        """Export the combined images as PDF"""
+        """Export the combined images in selected format"""
         if not self.export_ready or not self.combined_image1 or not self.combined_image2:
             messagebox.showwarning("Attention", "Veuillez d'abord combiner les PDF")
             return
@@ -705,16 +801,19 @@ class ModernPDFCombinerApp:
             filename1 = self.filename1_entry.get().strip()
             filename2 = self.filename2_entry.get().strip()
             
+            format_type = self.export_format.get()
+            format_ext = format_type.lower()
+            
             if not filename1:
-                filename1 = self.filename1_entry.cget("placeholder_text") or "combined_1.pdf"
+                filename1 = self.filename1_entry.cget("placeholder_text") or f"combined_1.{format_ext}"
             if not filename2:
-                filename2 = self.filename2_entry.cget("placeholder_text") or "combined_2.pdf"
+                filename2 = self.filename2_entry.cget("placeholder_text") or f"combined_2.{format_ext}"
                 
-            # Ensure .pdf extension
-            if not filename1.lower().endswith('.pdf'):
-                filename1 += '.pdf'
-            if not filename2.lower().endswith('.pdf'):
-                filename2 += '.pdf'
+            # Ensure correct extension
+            if not filename1.lower().endswith(f'.{format_ext}'):
+                filename1 += f'.{format_ext}'
+            if not filename2.lower().endswith(f'.{format_ext}'):
+                filename2 += f'.{format_ext}'
                 
             # Create full paths
             output1 = os.path.join(save_dir, filename1)
@@ -722,34 +821,49 @@ class ModernPDFCombinerApp:
             
             # Update progress
             self.status_label.configure(
-                text="📄 Création des PDF 300 DPI...",
+                text=f"📄 Création des {format_type} 300 DPI...",
                 text_color=("blue", "lightblue")
             )
             self.root.update()
             
-            # Save as PDF with high quality (300 DPI resolution preserved)
-            self.combined_image1.save(output1, 'PDF', 
-                                    quality=100, 
-                                    resolution=300.0)
-            self.combined_image2.save(output2, 'PDF', 
-                                    quality=100, 
-                                    resolution=300.0)
-            
-            # Update status
-            self.status_label.configure(
-                text="📄 PDF 300 DPI exportés avec succès !",
-                text_color=("green", "lightgreen")
-            )
-            
-            # Show success message
-            messagebox.showinfo("Succès", 
-                              f"🎉 PDF exportés avec succès !\n\n"
-                              f"📄 Fichier 1: {filename1}\n"
-                              f"📄 Fichier 2: {filename2}\n\n"
-                              f"🎨 Qualité: 300 DPI (qualité professionnelle)\n"
-                              f"📏 Dimensions originales préservées\n"
-                              f"📄 Format: PDF vectoriel\n\n"
-                              f"📁 Sauvegardés dans: {save_dir}")
+            # Export based on format
+            if format_type == "PDF":
+                # Save as PDF with high quality (300 DPI resolution preserved)
+                self.combined_image1.save(output1, 'PDF', 
+                                        quality=100, 
+                                        resolution=300.0)
+                self.combined_image2.save(output2, 'PDF', 
+                                        quality=100, 
+                                        resolution=300.0)
+                
+                # Update status
+                self.status_label.configure(
+                    text="📄 PDF 300 DPI exportés avec succès !",
+                    text_color=("green", "lightgreen")
+                )
+                
+                # Show custom success popup
+                self.show_success_popup("PDF", filename1, filename2, save_dir, 
+                                      "📄 Format: PDF vectoriel\n📏 Dimensions originales préservées")
+                
+            else:  # PNG
+                # Save as PNG with high quality (300 DPI resolution preserved)
+                self.combined_image1.save(output1, 'PNG', 
+                                        quality=100, 
+                                        dpi=(300, 300))
+                self.combined_image2.save(output2, 'PNG', 
+                                        quality=100, 
+                                        dpi=(300, 300))
+                
+                # Update status
+                self.status_label.configure(
+                    text="🖼️ PNG 300 DPI exportés avec succès !",
+                    text_color=("green", "lightgreen")
+                )
+                
+                # Show custom success popup
+                self.show_success_popup("PNG", filename1, filename2, save_dir, 
+                                      "🖼️ Format: PNG haute résolution\n📏 Dimensions: Qualité professionnelle")
                               
         except Exception as e:
             self.status_label.configure(
@@ -758,6 +872,140 @@ class ModernPDFCombinerApp:
             )
             messagebox.showerror("Erreur", f"Erreur lors de l'export: {str(e)}")
             
+    def show_success_popup(self, format_type, filename1, filename2, save_dir, format_info):
+        """Show custom success popup window"""
+        # Create popup window
+        popup = ctk.CTkToplevel(self.root)
+        popup.title("🎉 Export Réussi")
+        popup.geometry("500x400")
+        popup.resizable(False, False)
+        
+        # Center the popup
+        popup.transient(self.root)
+        popup.grab_set()
+        
+        # Header
+        header_frame = ctk.CTkFrame(popup, corner_radius=0, height=80, fg_color=("green", "darkgreen"))
+        header_frame.pack(fill="x", padx=0, pady=0)
+        header_frame.pack_propagate(False)
+        
+        success_icon = ctk.CTkLabel(
+            header_frame,
+            text="🎉",
+            font=ctk.CTkFont(size=40),
+            text_color="white"
+        )
+        success_icon.pack(pady=20)
+        
+        # Main content
+        content_frame = ctk.CTkFrame(popup, fg_color="transparent")
+        content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Title
+        title_label = ctk.CTkLabel(
+            content_frame,
+            text=f"Export {format_type} Terminé !",
+            font=ctk.CTkFont(size=24, weight="bold"),
+            text_color=("green", "lightgreen")
+        )
+        title_label.pack(pady=(0, 20))
+        
+        # Files info
+        files_frame = ctk.CTkFrame(content_frame, corner_radius=8)
+        files_frame.pack(fill="x", pady=10)
+        
+        files_title = ctk.CTkLabel(
+            files_frame,
+            text="📁 Fichiers créés:",
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        files_title.pack(pady=(15, 5))
+        
+        file1_label = ctk.CTkLabel(
+            files_frame,
+            text=f"📄 {filename1}",
+            font=ctk.CTkFont(size=12)
+        )
+        file1_label.pack(pady=2)
+        
+        file2_label = ctk.CTkLabel(
+            files_frame,
+            text=f"📄 {filename2}",
+            font=ctk.CTkFont(size=12)
+        )
+        file2_label.pack(pady=(2, 15))
+        
+        # Quality info
+        quality_frame = ctk.CTkFrame(content_frame, corner_radius=8)
+        quality_frame.pack(fill="x", pady=10)
+        
+        quality_label = ctk.CTkLabel(
+            quality_frame,
+            text=f"🎨 Qualité: 300 DPI (professionnelle)\n{format_info}",
+            font=ctk.CTkFont(size=12),
+            justify="center"
+        )
+        quality_label.pack(pady=15)
+        
+        # Location info
+        location_frame = ctk.CTkFrame(content_frame, corner_radius=8)
+        location_frame.pack(fill="x", pady=10)
+        
+        location_title = ctk.CTkLabel(
+            location_frame,
+            text="📂 Emplacement:",
+            font=ctk.CTkFont(size=12, weight="bold")
+        )
+        location_title.pack(pady=(10, 5))
+        
+        location_label = ctk.CTkLabel(
+            location_frame,
+            text=save_dir,
+            font=ctk.CTkFont(size=10),
+            text_color=("gray60", "gray40")
+        )
+        location_label.pack(pady=(0, 10))
+        
+        # Buttons
+        buttons_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        buttons_frame.pack(fill="x", pady=(20, 0))
+        
+        open_folder_btn = ctk.CTkButton(
+            buttons_frame,
+            text="📁 Ouvrir Dossier",
+            command=lambda: self.open_folder(save_dir),
+            width=150,
+            height=35,
+            corner_radius=6
+        )
+        open_folder_btn.pack(side="left", padx=(0, 10))
+        
+        close_btn = ctk.CTkButton(
+            buttons_frame,
+            text="✅ Fermer",
+            command=popup.destroy,
+            width=100,
+            height=35,
+            corner_radius=6,
+            fg_color=("green", "darkgreen"),
+            hover_color=("lightgreen", "green")
+        )
+        close_btn.pack(side="right")
+        
+    def open_folder(self, folder_path):
+        """Open folder in file explorer"""
+        try:
+            import subprocess
+            import platform
+            
+            if platform.system() == "Windows":
+                subprocess.run(['explorer', folder_path])
+            elif platform.system() == "Darwin":  # macOS
+                subprocess.run(['open', folder_path])
+            else:  # Linux
+                subprocess.run(['xdg-open', folder_path])
+        except Exception as e:
+            print(f"Could not open folder: {e}")
 
 
 def main():
