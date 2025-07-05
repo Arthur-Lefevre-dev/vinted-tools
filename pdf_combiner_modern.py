@@ -30,6 +30,10 @@ class ModernPDFCombinerApp:
         self.pdf2_hires = None  # For export (300 DPI)
         self.processing = False
         
+        # Variables for blank page options
+        self.pdf1_is_blank = False
+        self.pdf2_is_blank = False
+        
         # Variables for orientations
         self.pdf1_orientation = ctk.StringVar(value="Portrait")
         self.pdf2_orientation = ctk.StringVar(value="Portrait")
@@ -117,15 +121,29 @@ class ModernPDFCombinerApp:
         )
         self.pdf1_label.pack(side="left", padx=(0, 10))
         
+        # Buttons frame for PDF1
+        self.pdf1_buttons_frame = ctk.CTkFrame(self.pdf1_info_frame, fg_color="transparent")
+        self.pdf1_buttons_frame.pack(side="right", pady=10)
+        
         self.pdf1_button = ctk.CTkButton(
-            self.pdf1_info_frame,
+            self.pdf1_buttons_frame,
             text="📁 Parcourir",
             command=self.select_pdf1,
-            width=120,
+            width=100,
             height=32,
             corner_radius=6
         )
-        self.pdf1_button.pack(side="right", pady=10)
+        self.pdf1_button.pack(side="left", padx=(0, 5))
+        
+        self.pdf1_blank_button = ctk.CTkButton(
+            self.pdf1_buttons_frame,
+            text="📄 Feuille blanche",
+            command=self.select_blank_pdf1,
+            width=100,
+            height=32,
+            corner_radius=6
+        )
+        self.pdf1_blank_button.pack(side="left")
         
         # PDF 1 Orientation
         self.pdf1_orientation_frame = ctk.CTkFrame(self.pdf1_frame, fg_color="transparent")
@@ -191,15 +209,29 @@ class ModernPDFCombinerApp:
         )
         self.pdf2_label.pack(side="left", padx=(0, 10))
         
+        # Buttons frame for PDF2
+        self.pdf2_buttons_frame = ctk.CTkFrame(self.pdf2_info_frame, fg_color="transparent")
+        self.pdf2_buttons_frame.pack(side="right", pady=10)
+        
         self.pdf2_button = ctk.CTkButton(
-            self.pdf2_info_frame,
+            self.pdf2_buttons_frame,
             text="📁 Parcourir",
             command=self.select_pdf2,
-            width=120,
+            width=100,
             height=32,
             corner_radius=6
         )
-        self.pdf2_button.pack(side="right", pady=10)
+        self.pdf2_button.pack(side="left", padx=(0, 5))
+        
+        self.pdf2_blank_button = ctk.CTkButton(
+            self.pdf2_buttons_frame,
+            text="📄 Feuille blanche",
+            command=self.select_blank_pdf2,
+            width=100,
+            height=32,
+            corner_radius=6
+        )
+        self.pdf2_blank_button.pack(side="left")
         
         # PDF 2 Orientation
         self.pdf2_orientation_frame = ctk.CTkFrame(self.pdf2_frame, fg_color="transparent")
@@ -493,6 +525,7 @@ class ModernPDFCombinerApp:
         )
         if file_path:
             self.pdf1_path = file_path
+            self.pdf1_is_blank = False
             filename = os.path.basename(file_path)
             self.pdf1_label.configure(text=f"✅ {filename}", text_color=("green", "lightgreen"))
             self.status_label.configure(text="⏳ Chargement de l'aperçu...")
@@ -509,6 +542,7 @@ class ModernPDFCombinerApp:
         )
         if file_path:
             self.pdf2_path = file_path
+            self.pdf2_is_blank = False
             filename = os.path.basename(file_path)
             self.pdf2_label.configure(text=f"✅ {filename}", text_color=("green", "lightgreen"))
             self.status_label.configure(text="⏳ Chargement de l'aperçu...")
@@ -516,6 +550,47 @@ class ModernPDFCombinerApp:
             
             # Load preview in thread
             threading.Thread(target=self.load_pdf_preview, args=(file_path, 2), daemon=True).start()
+            
+    def select_blank_pdf1(self):
+        """Select blank page for first PDF"""
+        self.pdf1_path = None
+        self.pdf1_is_blank = True
+        self.pdf1_label.configure(text="📄 Feuille blanche sélectionnée", text_color=("green", "lightgreen"))
+        # Create and show blank preview
+        self.create_blank_preview(1)
+        self.check_ready_to_process()
+        self.update_filename_suggestions()
+        
+    def select_blank_pdf2(self):
+        """Select blank page for second PDF"""
+        self.pdf2_path = None
+        self.pdf2_is_blank = True
+        self.pdf2_label.configure(text="📄 Feuille blanche sélectionnée", text_color=("green", "lightgreen"))
+        # Create and show blank preview
+        self.create_blank_preview(2)
+        self.check_ready_to_process()
+        self.update_filename_suggestions()
+        
+    def create_blank_preview(self, pdf_number):
+        """Create a blank preview for the specified PDF"""
+        # Create a white image for preview
+        blank_image = Image.new('RGB', (120, 140), 'white')
+        
+        # Store blank image
+        if pdf_number == 1:
+            self.pdf1_image = blank_image
+        else:
+            self.pdf2_image = blank_image
+        
+        # Create CTkImage for preview
+        ctk_image = ctk.CTkImage(light_image=blank_image, dark_image=blank_image, size=(120, 140))
+        
+        # Update preview
+        self.update_preview(ctk_image, pdf_number)
+        
+    def create_blank_page(self, width, height):
+        """Create a blank page with specified dimensions"""
+        return Image.new('RGB', (width, height), 'white')
             
     def load_pdf_preview(self, pdf_path, pdf_number):
         """Load and display PDF preview (BASSE RÉSOLUTION pour aperçu seulement)"""
@@ -616,10 +691,14 @@ class ModernPDFCombinerApp:
         
     def check_ready_to_process(self):
         """Check if both PDFs are loaded and enable process button"""
-        if self.pdf1_path and self.pdf2_path:
+        # Check if both inputs are ready (either PDF files or blank pages)
+        pdf1_ready = self.pdf1_path is not None or self.pdf1_is_blank
+        pdf2_ready = self.pdf2_path is not None or self.pdf2_is_blank
+        
+        if pdf1_ready and pdf2_ready:
             self.process_button.configure(state="normal")
             self.status_label.configure(
-                text="🎯 Prêt à combiner les PDF !",
+                text="🎯 Prêt à combiner !",
                 text_color=("green", "lightgreen")
             )
             # Update filename suggestions
@@ -629,9 +708,21 @@ class ModernPDFCombinerApp:
             
     def update_filename_suggestions(self):
         """Update filename suggestions based on selected PDFs"""
-        if self.pdf1_path and self.pdf2_path:
-            base1 = os.path.splitext(os.path.basename(self.pdf1_path))[0]
-            base2 = os.path.splitext(os.path.basename(self.pdf2_path))[0]
+        # Check if both inputs are ready (either PDF files or blank pages)
+        pdf1_ready = self.pdf1_path is not None or self.pdf1_is_blank
+        pdf2_ready = self.pdf2_path is not None or self.pdf2_is_blank
+        
+        if pdf1_ready and pdf2_ready:
+            # Get base names for filenames
+            if self.pdf1_is_blank:
+                base1 = "blank"
+            else:
+                base1 = os.path.splitext(os.path.basename(self.pdf1_path))[0]
+                
+            if self.pdf2_is_blank:
+                base2 = "blank"
+            else:
+                base2 = os.path.splitext(os.path.basename(self.pdf2_path))[0]
             
             # Get current format
             format_ext = self.export_format.get().lower()
@@ -666,31 +757,56 @@ class ModernPDFCombinerApp:
         
     def process_pdfs(self):
         """Process the PDFs and create combined images"""
-        if not self.pdf1_path or not self.pdf2_path:
-            self.root.after(0, lambda: messagebox.showwarning("Attention", "Veuillez sélectionner deux fichiers PDF"))
+        # Check if both inputs are ready (either PDF files or blank pages)
+        pdf1_ready = self.pdf1_path is not None or self.pdf1_is_blank
+        pdf2_ready = self.pdf2_path is not None or self.pdf2_is_blank
+        
+        if not pdf1_ready or not pdf2_ready:
+            self.root.after(0, lambda: messagebox.showwarning("Attention", "Veuillez sélectionner deux éléments (PDF ou feuille blanche)"))
             self.processing = False
             return
             
         try:
             # Update progress
             self.root.after(0, lambda: self.progress_bar.set(0.1))
-            self.root.after(0, lambda: self.status_label.configure(text="📄 Conversion des PDF en images..."))
+            self.root.after(0, lambda: self.status_label.configure(text="📄 Traitement des éléments..."))
             
-            # FORCER le rechargement en 300 DPI pour la qualité (même si previews existent)
-            self.root.after(0, lambda: self.status_label.configure(text="📄 Rechargement PDF 1 en 300 DPI haute qualité..."))
-            images1 = convert_from_path(self.pdf1_path, first_page=1, last_page=1, dpi=300)
-            self.pdf1_hires = images1[0] if images1 else None
+            # Handle PDF 1 (either file or blank page)
+            if self.pdf1_is_blank:
+                self.root.after(0, lambda: self.status_label.configure(text="📄 Création de la feuille blanche 1..."))
+                # Create a standard A4 page (2480x3508 pixels at 300 DPI)
+                self.pdf1_hires = self.create_blank_page(2480, 3508)
+            else:
+                self.root.after(0, lambda: self.status_label.configure(text="📄 Rechargement PDF 1 en 300 DPI haute qualité..."))
+                images1 = convert_from_path(self.pdf1_path, first_page=1, last_page=1, dpi=300)
+                self.pdf1_hires = images1[0] if images1 else None
                 
             self.root.after(0, lambda: self.progress_bar.set(0.3))
             
-            self.root.after(0, lambda: self.status_label.configure(text="📄 Rechargement PDF 2 en 300 DPI haute qualité..."))
-            images2 = convert_from_path(self.pdf2_path, first_page=1, last_page=1, dpi=300)
-            self.pdf2_hires = images2[0] if images2 else None
+            # Handle PDF 2 (either file or blank page)
+            if self.pdf2_is_blank:
+                self.root.after(0, lambda: self.status_label.configure(text="📄 Création de la feuille blanche 2..."))
+                # Create a standard A4 page (2480x3508 pixels at 300 DPI)
+                self.pdf2_hires = self.create_blank_page(2480, 3508)
+            else:
+                self.root.after(0, lambda: self.status_label.configure(text="📄 Rechargement PDF 2 en 300 DPI haute qualité..."))
+                images2 = convert_from_path(self.pdf2_path, first_page=1, last_page=1, dpi=300)
+                self.pdf2_hires = images2[0] if images2 else None
                 
             self.root.after(0, lambda: self.progress_bar.set(0.5))
             
             if not self.pdf1_hires or not self.pdf2_hires:
-                raise Exception("Impossible de convertir les PDF en images haute résolution")
+                raise Exception("Impossible de créer les images haute résolution")
+                
+            # Adjust dimensions for blank pages if needed
+            if self.pdf1_is_blank and not self.pdf2_is_blank:
+                # Adjust blank page to match PDF dimensions
+                width2, height2 = self.pdf2_hires.size
+                self.pdf1_hires = self.create_blank_page(width2, height2)
+            elif self.pdf2_is_blank and not self.pdf1_is_blank:
+                # Adjust blank page to match PDF dimensions
+                width1, height1 = self.pdf1_hires.size
+                self.pdf2_hires = self.create_blank_page(width1, height1)
                 
             self.root.after(0, lambda: self.status_label.configure(text="✂️ Découpage et combinaison des images..."))
             
