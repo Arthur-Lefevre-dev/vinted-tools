@@ -328,7 +328,7 @@ class ModernPDFCombinerApp:
         
         self.combined1_title = ctk.CTkLabel(
             self.combined1_frame,
-            text="Résultat 1\n(PDF1 Haut + PDF2 Bas)",
+            text="Résultat 1\n(PDF1 Haut + PDF2 Haut)",
             font=ctk.CTkFont(size=12, weight="bold")
         )
         self.combined1_title.pack(pady=(15, 5))
@@ -348,7 +348,7 @@ class ModernPDFCombinerApp:
         
         self.combined2_title = ctk.CTkLabel(
             self.combined2_frame,
-            text="Résultat 2\n(PDF2 Haut + PDF1 Bas)",
+            text="Résultat 2\n(PDF1 Bas + PDF2 Bas)",
             font=ctk.CTkFont(size=12, weight="bold")
         )
         self.combined2_title.pack(pady=(15, 5))
@@ -425,7 +425,7 @@ class ModernPDFCombinerApp:
         
         self.filename1_entry = ctk.CTkEntry(
             self.filename1_frame,
-            placeholder_text="combined_1.pdf",
+            placeholder_text="tops_combined.pdf",
             width=250,
             height=32,
             border_width=2,
@@ -446,7 +446,7 @@ class ModernPDFCombinerApp:
         
         self.filename2_entry = ctk.CTkEntry(
             self.filename2_frame,
-            placeholder_text="combined_2.pdf",
+            placeholder_text="bottoms_combined.pdf",
             width=250,
             height=32,
             border_width=2,
@@ -722,9 +722,9 @@ class ModernPDFCombinerApp:
             # Get current format
             format_ext = self.export_format.get().lower()
             
-            # Set placeholder text
-            self.filename1_entry.configure(placeholder_text=f"{base1}_top_{base2}_bottom.{format_ext}")
-            self.filename2_entry.configure(placeholder_text=f"{base2}_top_{base1}_bottom.{format_ext}")
+            # Set placeholder text - NOUVELLE LOGIQUE CORRIGÉE
+            self.filename1_entry.configure(placeholder_text=f"{base1}_top_{base2}_top.{format_ext}")
+            self.filename2_entry.configure(placeholder_text=f"{base1}_bottom_{base2}_bottom.{format_ext}")
             
     def update_export_format(self, value):
         """Update export format and filename suggestions"""
@@ -817,39 +817,39 @@ class ModernPDFCombinerApp:
             width1, height1 = image1.size
             width2, height2 = image2.size
             
-            # Create combined images
-            # Image 1: Top half of PDF1 + Bottom half of PDF2
+            # Create combined images - NOUVELLE LOGIQUE CORRIGÉE
+            # Image 1: Top half of PDF1 + Top half of PDF2
             top_half_pdf1 = image1.crop((0, 0, width1, height1 // 2))
-            bottom_half_pdf2 = image2.crop((0, height2 // 2, width2, height2))
+            top_half_pdf2 = image2.crop((0, 0, width2, height2 // 2))
             
             # Resize to match width if needed
             target_width = max(width1, width2)
             if top_half_pdf1.width != target_width:
                 top_half_pdf1 = top_half_pdf1.resize((target_width, top_half_pdf1.height), Image.Resampling.LANCZOS)
-            if bottom_half_pdf2.width != target_width:
-                bottom_half_pdf2 = bottom_half_pdf2.resize((target_width, bottom_half_pdf2.height), Image.Resampling.LANCZOS)
+            if top_half_pdf2.width != target_width:
+                top_half_pdf2 = top_half_pdf2.resize((target_width, top_half_pdf2.height), Image.Resampling.LANCZOS)
             
-            # Create first combined image with high quality
-            combined_image1 = Image.new('RGB', (target_width, top_half_pdf1.height + bottom_half_pdf2.height), 'white')
+            # Create first combined image with high quality (Both TOP halves)
+            combined_image1 = Image.new('RGB', (target_width, top_half_pdf1.height + top_half_pdf2.height), 'white')
             combined_image1.paste(top_half_pdf1, (0, 0))
-            combined_image1.paste(bottom_half_pdf2, (0, top_half_pdf1.height))
+            combined_image1.paste(top_half_pdf2, (0, top_half_pdf1.height))
             
             self.root.after(0, lambda: self.progress_bar.set(0.7))
             
-            # Image 2: Top half of PDF2 + Bottom half of PDF1
-            top_half_pdf2 = image2.crop((0, 0, width2, height2 // 2))
+            # Image 2: Bottom half of PDF1 + Bottom half of PDF2
             bottom_half_pdf1 = image1.crop((0, height1 // 2, width1, height1))
+            bottom_half_pdf2 = image2.crop((0, height2 // 2, width2, height2))
             
             # Resize to match width if needed with high quality
-            if top_half_pdf2.width != target_width:
-                top_half_pdf2 = top_half_pdf2.resize((target_width, top_half_pdf2.height), Image.Resampling.LANCZOS)
             if bottom_half_pdf1.width != target_width:
                 bottom_half_pdf1 = bottom_half_pdf1.resize((target_width, bottom_half_pdf1.height), Image.Resampling.LANCZOS)
+            if bottom_half_pdf2.width != target_width:
+                bottom_half_pdf2 = bottom_half_pdf2.resize((target_width, bottom_half_pdf2.height), Image.Resampling.LANCZOS)
             
-            # Create second combined image with high quality
-            combined_image2 = Image.new('RGB', (target_width, top_half_pdf2.height + bottom_half_pdf1.height), 'white')
-            combined_image2.paste(top_half_pdf2, (0, 0))
-            combined_image2.paste(bottom_half_pdf1, (0, top_half_pdf2.height))
+            # Create second combined image with high quality (Both BOTTOM halves)
+            combined_image2 = Image.new('RGB', (target_width, bottom_half_pdf1.height + bottom_half_pdf2.height), 'white')
+            combined_image2.paste(bottom_half_pdf1, (0, 0))
+            combined_image2.paste(bottom_half_pdf2, (0, bottom_half_pdf1.height))
             
             self.root.after(0, lambda: self.progress_bar.set(0.8))
             self.root.after(0, lambda: self.status_label.configure(text="Images combinées prêtes !"))
@@ -892,7 +892,7 @@ class ModernPDFCombinerApp:
         self.process_button.configure(state="normal", text="Combiner les PDF")
         self.progress_bar.set(1.0)
         self.status_label.configure(
-            text="Combinaison terminée ! Vous pouvez maintenant exporter en PDF.",
+            text="Combinaison terminée ! Vous pouvez maintenant exporter les fichiers.",
             text_color=("green", "lightgreen")
         )
         
@@ -916,9 +916,9 @@ class ModernPDFCombinerApp:
             format_ext = format_type.lower()
             
             if not filename1:
-                filename1 = self.filename1_entry.cget("placeholder_text") or f"combined_1.{format_ext}"
+                filename1 = self.filename1_entry.cget("placeholder_text") or f"tops_combined.{format_ext}"
             if not filename2:
-                filename2 = self.filename2_entry.cget("placeholder_text") or f"combined_2.{format_ext}"
+                filename2 = self.filename2_entry.cget("placeholder_text") or f"bottoms_combined.{format_ext}"
                 
             # Ensure correct extension
             if not filename1.lower().endswith(f'.{format_ext}'):
