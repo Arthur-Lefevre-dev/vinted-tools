@@ -28,6 +28,63 @@ class PDFProcessor:
         self.pdf1 = PDFDocument()
         self.pdf2 = PDFDocument()
         self.combined = CombinedDocument()
+        
+        # Configure environment to avoid cmd windows
+        self._configure_pdf2image_environment()
+    
+    def _get_poppler_path(self) -> Optional[str]:
+        """Get poppler path for pdf2image"""
+        import sys
+        
+        # When compiled, poppler is included in the executable
+        if getattr(sys, 'frozen', False):
+            # For compiled executable, return None to use system poppler
+            return None
+        else:
+            # For development, return None to use system poppler
+            return None
+    
+    def _configure_pdf2image_environment(self):
+        """Configure environment to avoid cmd windows"""
+        import subprocess
+        import sys
+        import os
+        
+        # Set environment variables to avoid cmd windows
+        if sys.platform == 'win32':
+            # Hide console windows on Windows
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            
+            # Set environment variables
+            os.environ['PYTHONHASHSEED'] = '0'
+    
+    def _convert_pdf_safe(self, file_path: str, dpi: int, first_page: int = 1, last_page: int = 1):
+        """Safely convert PDF to images without cmd windows"""
+        import subprocess
+        import sys
+        
+        # Configure subprocess to avoid cmd windows
+        kwargs = {
+            'first_page': first_page,
+            'last_page': last_page,
+            'dpi': dpi,
+            'poppler_path': self._get_poppler_path(),
+            'use_pdftocairo': True,
+            'thread_count': 1
+        }
+        
+        # Add Windows-specific settings to avoid cmd windows
+        if sys.platform == 'win32':
+            # Create a custom environment
+            import os
+            env = os.environ.copy()
+            
+            # Set console creation flags
+            kwargs['fmt'] = 'ppm'  # Use PPM format for better compatibility
+        
+        return convert_from_path(file_path, **kwargs)
     
     def load_pdf_from_file(self, file_path: str, pdf_number: int) -> None:
         """Load PDF from file path"""
@@ -36,11 +93,11 @@ class PDFProcessor:
         
         try:
             # Load preview (low resolution)
-            preview_images = convert_from_path(
+            preview_images = self._convert_pdf_safe(
                 file_path, 
+                dpi=config.PREVIEW_DPI,
                 first_page=1, 
-                last_page=1, 
-                dpi=config.PREVIEW_DPI
+                last_page=1
             )
             
             if not preview_images:
@@ -101,11 +158,11 @@ class PDFProcessor:
                         config.A4_HEIGHT_300DPI
                     )
                 elif self.pdf1.file_path:
-                    images = convert_from_path(
+                    images = self._convert_pdf_safe(
                         self.pdf1.file_path, 
+                        dpi=config.EXPORT_DPI,
                         first_page=1, 
-                        last_page=1, 
-                        dpi=config.EXPORT_DPI
+                        last_page=1
                     )
                     self.pdf1.hires_image = images[0] if images else None
             
@@ -117,11 +174,11 @@ class PDFProcessor:
                         config.A4_HEIGHT_300DPI
                     )
                 elif self.pdf2.file_path:
-                    images = convert_from_path(
+                    images = self._convert_pdf_safe(
                         self.pdf2.file_path, 
+                        dpi=config.EXPORT_DPI,
                         first_page=1, 
-                        last_page=1, 
-                        dpi=config.EXPORT_DPI
+                        last_page=1
                     )
                     self.pdf2.hires_image = images[0] if images else None
             

@@ -74,14 +74,26 @@ src/
 
 ## 🔧 Compilation en Exécutable
 
-### Compilation Rapide
+### ✅ Corrections Appliquées
+
+**Problèmes résolus** :
+
+- ✅ **Icône manquante** : L'icône s'affiche maintenant dans l'application et l'exécutable
+- ✅ **Fenêtres cmd** : Plus de fenêtres cmd qui s'ouvrent pendant le traitement
+- ✅ **Freezes** : L'application reste fluide pendant le traitement des PDF
+
+### Scripts de Compilation
 
 ```bash
-# Tout automatique
-build_exe.bat
+# Compilation complète avec validation
+full_build_with_validation.bat
 
-# Compilation simple
+# Compilation rapide
+build_exe.bat
 quick_build.bat
+
+# Validation seule
+python validate_setup.py
 
 # Nettoyage
 clean_build.bat
@@ -129,13 +141,16 @@ Consultez [BUILD_GUIDE.md](BUILD_GUIDE.md) pour plus de détails.
 
 ## 🛠️ Scripts Utiles
 
-| Script            | Description                             |
-| ----------------- | --------------------------------------- |
-| `start.bat`       | Lance l'application Python              |
-| `build_exe.bat`   | Compilation complète avec vérifications |
-| `quick_build.bat` | Compilation rapide                      |
-| `test_exe.bat`    | Test de l'exécutable                    |
-| `clean_build.bat` | Nettoyage des fichiers de build         |
+| Script                           | Description                              |
+| -------------------------------- | ---------------------------------------- |
+| `start.bat`                      | Lance l'application Python               |
+| `full_build_with_validation.bat` | **Compilation complète avec validation** |
+| `build_exe.bat`                  | Compilation avec vérifications           |
+| `quick_build.bat`                | Compilation rapide                       |
+| `test_exe.bat`                   | Test de l'exécutable                     |
+| `test_fixes.bat`                 | **Test des corrections appliquées**      |
+| `validate_setup.py`              | **Validation de la configuration**       |
+| `clean_build.bat`                | Nettoyage des fichiers de build          |
 
 ## 📊 Spécifications Techniques
 

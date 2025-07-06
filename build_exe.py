@@ -67,7 +67,9 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        ('assets/icon.ico', 'assets'),
+    ] if os.path.exists('assets/icon.ico') else [],
     hiddenimports=[
         'pdf2image',
         'PIL',

@@ -38,8 +38,19 @@ class MainWindow:
         if hasattr(config, 'WINDOW_ICON') and config.WINDOW_ICON:
             try:
                 import os
-                if os.path.exists(config.WINDOW_ICON):
-                    self.root.iconbitmap(config.WINDOW_ICON)
+                import sys
+                
+                # Check if running as compiled executable
+                if getattr(sys, 'frozen', False):
+                    # Running as compiled executable
+                    base_path = sys._MEIPASS
+                    icon_path = os.path.join(base_path, 'assets', 'icon.ico')
+                else:
+                    # Running as script
+                    icon_path = config.WINDOW_ICON
+                
+                if os.path.exists(icon_path):
+                    self.root.iconbitmap(icon_path)
             except Exception:
                 pass  # Ignore icon errors
         

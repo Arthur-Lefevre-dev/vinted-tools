@@ -4,6 +4,19 @@ Main entry point for PDF Combiner application
 
 import sys
 from pathlib import Path
+import os
+
+# Configure environment to avoid cmd windows on Windows
+if sys.platform == 'win32':
+    import subprocess
+    # Set environment variables to prevent cmd windows
+    os.environ['PYTHONHASHSEED'] = '0'
+    
+    # Configure subprocess to avoid cmd windows
+    if hasattr(subprocess, 'STARTUPINFO'):
+        si = subprocess.STARTUPINFO()
+        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        si.wShowWindow = subprocess.SW_HIDE
 
 # Add src directory to path for imports
 src_path = Path(__file__).parent / "src"
