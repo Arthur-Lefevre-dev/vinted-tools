@@ -11,8 +11,9 @@ class AppConfig:
     """Main application configuration"""
     
     # Window settings
-    WINDOW_TITLE: str = "Combinateur PDF Professionnel"
+    WINDOW_TITLE: str = "PDF Slice and Combine GODTOOL"  # 👈 Modifiez ici le titre
     WINDOW_SIZE: Tuple[int, int] = (1200, 900)
+    WINDOW_ICON: str = "assets/icon.ico"  # 👈 Chemin vers l'icône (None si pas d'icône)
     
     # Theme settings
     APPEARANCE_MODE: str = "dark"  # "System", "Dark", "Light"

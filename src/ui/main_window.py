@@ -34,6 +34,15 @@ class MainWindow:
         self.root.title(config.WINDOW_TITLE)
         self.root.geometry(f"{config.WINDOW_SIZE[0]}x{config.WINDOW_SIZE[1]}")
         
+        # Set window icon if available
+        if hasattr(config, 'WINDOW_ICON') and config.WINDOW_ICON:
+            try:
+                import os
+                if os.path.exists(config.WINDOW_ICON):
+                    self.root.iconbitmap(config.WINDOW_ICON)
+            except Exception:
+                pass  # Ignore icon errors
+        
     def setup_theme(self) -> None:
         """Setup application theme"""
         ctk.set_appearance_mode(config.APPEARANCE_MODE)
@@ -70,7 +79,7 @@ class MainWindow:
         # Title
         title_label = ctk.CTkLabel(
             header_frame, 
-            text="Combinateur PDF", 
+            text=config.WINDOW_TITLE,  # 👈 Utilise la configuration centralisée
             font=ctk.CTkFont(size=24, weight="bold")
         )
         title_label.pack(pady=(20, 5))
